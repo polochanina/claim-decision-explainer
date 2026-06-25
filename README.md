@@ -13,9 +13,6 @@ provides optional observability/tracing, and the demo UI is built with Streamlit
 A FastAPI service that predicts insurance claim approval and explains each decision to two
 audiences — the customer and the claims adjuster — using a LangGraph pipeline and Claude.
 
-See [`docs/DESIGN.md`](docs/DESIGN.md) for the full architecture, deployment, MLOps/LLMOps, and
-evaluation writeup. This README only covers running the service.
-
 ## Solution Design
 
 See [`docs/DESIGN.md`](docs/DESIGN.md) for the solution design rationale, full architecture,
