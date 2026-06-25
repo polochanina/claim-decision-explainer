@@ -15,18 +15,8 @@ evaluation writeup. This README only covers running the service.
 
 ## Solution Design
 
-As shown in the EDA and modeling sections, the main signal comes from free-text fields (`issueDesc` and `other`), while the rest of the tabular data barely distinguishes between classes. That shifts the central question from "which model" to **how should the LLM touch the classifier**.
-
-LLM-as-classifier contradicts both the letter and the spirit of the task. Technically, it would no longer be explaining an ML model but making the decision itself; practically, it would make predictions non-deterministic and unauditable, which conflicts with the requirements of a regulated claims system.
-
-That leaves two directions: incorporating text features before prediction, or adding them after the tabular-data prediction, at the explanation step. The second approach seems unreasonable, since it means ignoring the richest source of information in the database at the modeling step — and potentially forcing the LLM to contradict its own prediction.
-
-It's worth checking how much the metric (ROC-AUC/F1) actually changes after adding textual features. An embedding-based approach with dimensionality reduction was chosen as the easiest way to handle multilingual inputs. As a result, ROC-AUC rose from 0.618 to 0.730, which is worth the effort on a dataset this small.
-
-For a full production solution, it would be worth comparing cheaper alternatives — starting with TF-IDF (either shared across languages or separate per language), and moving to local HuggingFace embedding models (with the added complexity of self-hosting, and likely weaker performance for minor languages like NL/SV/FI). An API-based approach was therefore chosen as the fastest path. 
-
-I used **Voyage AI**, which performs well on minor languages, though it could easily be swapped for alternatives such as OpenAI or Bedrock Titan models.
-Full reasoning and the lift table are in [`docs/DESIGN.md`](docs/DESIGN.md).
+See [`docs/DESIGN.md`](docs/DESIGN.md) for the solution design rationale, full architecture,
+deployment, MLOps/LLMOps, and evaluation writeup.
 
 ## Setup
 
@@ -99,15 +89,4 @@ Langfuse is unreachable or unconfigured.
 
 ## Explicitly out of scope (MVP scope guard)
 
-- Auth, rate-limiting, streaming responses.
-- Caching embeddings at serve time (every request embeds `issueDesc` and `other` live —
-  correct for novel claims).
-- Synthetic claim scenario generation (an offline notebook concern, not part of this API).
-- Automated LLM-eval tooling (e.g. DeepEval/Ragas-style faithfulness/hallucination/fairness
-  scoring) — the brief scopes evaluation & monitoring as a design plan (see
-  [`docs/DESIGN.md`](docs/DESIGN.md) §6), not a built pipeline; this submission relies on
-  Langfuse tracing plus the documented periodic LLM-as-judge/human-review plan instead of
-  an automated eval suite.
-- Optimal decision-threshold selection — the model's default 0.5 cutoff on
-  `predict_proba` is used as-is; tuning the threshold against business cost of
-  false positives/negatives is a production calibration concern, not part of this MVP.
+See [`docs/DESIGN.md`](docs/DESIGN.md) §7 for what's deliberately not built and why.
