@@ -1,6 +1,8 @@
 # Claim Approval Agent
 
-🔗 **[Live demo on Streamlit Cloud](#)** *(link goes here once deployed)*
+🔗 **[Live demo on Streamlit Cloud](https://claim-decision-explainer.streamlit.app/)**
+Streamlit UI calls a FastAPI backend deployed on Render — cold starts possible.
+⚠️ This demo runs on my personal API keys. Please don't run me bankrupt.
 
 **Stack:** FastAPI backend with a LangGraph pipeline orchestrating a pre-trained CatBoost
 model (tabular + Voyage AI text embeddings) for claim-approval prediction, SHAP for
@@ -87,6 +89,6 @@ call and each persona's Claude call — model, token usage, and cost show up in 
 dashboard with no extra steps. Tracing is fully optional and never blocks the response if
 Langfuse is unreachable or unconfigured.
 
-## Explicitly out of scope (MVP scope guard)
+## Out of scope
 
 See [`docs/DESIGN.md`](docs/DESIGN.md) §7 for what's deliberately not built and why.

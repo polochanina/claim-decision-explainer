@@ -33,6 +33,12 @@ swapped for alternatives such as OpenAI or Bedrock Titan models.
 
 ## 1. Architecture
 
+![Architecture overview: offline training/MLflow, FastAPI+LangGraph serving, external dependencies, observability, secrets, and CI](architecture_diagram.png)
+
+*Full structural overview — offline training (notebook + MLflow), the serving path, external
+dependencies, observability, secrets, and CI. The "Serving" box's LangGraph pipeline is
+expanded in request-flow detail below:*
+
 ```
 POST /explain-claim
         │
