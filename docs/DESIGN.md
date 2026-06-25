@@ -43,9 +43,9 @@ expanded in request-flow detail below:*
 POST /explain-claim
         │
         ▼
-   ┌─────────┐     ┌───────────┐     ┌──────────────────┐     ┌──────────┐
+   ┌─────────┐     ┌───────────┐     ┌───────────────────┐    ┌──────────┐
    │ predict │ ──▶ │ attribute │ ──▶ │ explain (fan-out) │ ──▶ │ assemble │ ──▶ response
-   └─────────┘     └───────────┘     └──────────────────┘     └──────────┘
+   └─────────┘     └───────────┘     └───────────────────┘    └──────────┘
                                        ├─ explain_customer
                                        └─ explain_adjuster
 ```
