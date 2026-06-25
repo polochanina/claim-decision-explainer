@@ -2,6 +2,11 @@
 
 🔗 **[Live demo on Streamlit Cloud](#)** *(link goes here once deployed)*
 
+**Stack:** FastAPI backend with a LangGraph pipeline orchestrating a pre-trained CatBoost
+model (tabular + Voyage AI text embeddings) for claim-approval prediction, SHAP for
+feature attribution, and Claude (Anthropic) for persona-specific explanations; Langfuse
+provides optional observability/tracing, and the demo UI is built with Streamlit.
+
 A FastAPI service that predicts insurance claim approval and explains each decision to two
 audiences — the customer and the claims adjuster — using a LangGraph pipeline and Claude.
 
@@ -10,17 +15,17 @@ evaluation writeup. This README only covers running the service.
 
 ## Solution Design
 
-As shown in EDA + modeling part, main signal comes from free-text fields (issueDesc and other), while the rest of the tabular data barely distinguishes between the classes.
-That turns the central question from "which model" into
-"how should the LLM touch the classifier." 
-**LLM-as-classifier** contradicts both the letter and the spirit of the task. Technically, it would not be *explaining* of ML model but making a decision itself; practically - it would make predictions non-deterministic and unauditable which contradicts the requirements for a regulated claim system.
-We are left with two directions: utilising text features *before* prediction or adding them *after*
-tabular data prediction on the explanation step. The second approach seems unreasonable, because it means ignoring the reachest source of information in the database on the modeling step, and potentially forcing LLM to contradict it's own prediction. 
+As shown in the EDA and modeling sections, the main signal comes from free-text fields (`issueDesc` and `other`), while the rest of the tabular data barely distinguishes between classes. That shifts the central question from "which model" to **how should the LLM touch the classifier**.
 
-It's worth checking how much does the metric (ROC-AUC/F1) actually changes after adding textual features. Embedding approach with dimensionality reduction was chosen as the easiest way to parse multilangual inputs. As a result, ROC-AUC increased from ~64 to ~75 procent, which is worth the effort on such a small dataset.
+LLM-as-classifier contradicts both the letter and the spirit of the task. Technically, it would no longer be explaining an ML model but making the decision itself; practically, it would make predictions non-deterministic and unauditable, which conflicts with the requirements of a regulated claims system.
 
-For the full real solution, it would be worth investing in comparing cheaper alternative methods, starting from TF-IDF (one for all languages or separate for each one) to local huggingface embedding models (extra difficulties with hosting and likely lower performance for minor languages NL/SV/FI). Therefore API was chosen as the fastest solution. I used Voyage AI (it shows good performance for minor languages), but it can be easily replaced for alternatives such as Open AI or Bedrock Titan models.
+That leaves two directions: incorporating text features before prediction, or adding them after the tabular-data prediction, at the explanation step. The second approach seems unreasonable, since it means ignoring the richest source of information in the database at the modeling step — and potentially forcing the LLM to contradict its own prediction.
 
+It's worth checking how much the metric (ROC-AUC/F1) actually changes after adding textual features. An embedding-based approach with dimensionality reduction was chosen as the easiest way to handle multilingual inputs. As a result, ROC-AUC rose from 0.618 to 0.730, which is worth the effort on a dataset this small.
+
+For a full production solution, it would be worth comparing cheaper alternatives — starting with TF-IDF (either shared across languages or separate per language), and moving to local HuggingFace embedding models (with the added complexity of self-hosting, and likely weaker performance for minor languages like NL/SV/FI). An API-based approach was therefore chosen as the fastest path. 
+
+I used **Voyage AI**, which performs well on minor languages, though it could easily be swapped for alternatives such as OpenAI or Bedrock Titan models.
 Full reasoning and the lift table are in [`docs/DESIGN.md`](docs/DESIGN.md).
 
 ## Setup

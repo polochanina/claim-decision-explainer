@@ -1,10 +1,15 @@
+import time
 import traceback
 
+import requests
 import streamlit as st
 
 from streamlit_app.api_client import ExplainClient
 from streamlit_app.config import LANGUAGE_KEYS, LANGUAGE_LABELS, PERSONA_KEYS, PERSONA_LABELS, UI_TEXT
 from streamlit_app.dataset import ClaimSampler
+
+COLD_START_RETRY_SECONDS = 3
+COLD_START_MAX_ATTEMPTS = 20
 
 
 class AppUI:
@@ -16,6 +21,8 @@ class AppUI:
     def run(self) -> None:
         try:
             self.display_header()
+            if not self._ensure_api_ready():
+                return
             self.display_sidebar()
             self.display_main()
         except Exception as e:
@@ -24,6 +31,31 @@ class AppUI:
     def display_header(self) -> None:
         st.title(UI_TEXT["title"])
         st.caption(UI_TEXT["caption"])
+
+    def _ensure_api_ready(self) -> bool:
+        if self.session.get("api_ready"):
+            return True
+
+        attempts = self.session.get("coldstart_attempts", 0)
+        with st.status(UI_TEXT["coldstart_waiting"].format(attempts=attempts + 1), expanded=True) as status:
+            try:
+                self._client.check_health()
+            except requests.RequestException:
+                attempts += 1
+                self.session["coldstart_attempts"] = attempts
+                if attempts >= COLD_START_MAX_ATTEMPTS:
+                    status.update(label=UI_TEXT["coldstart_failed"], state="error")
+                    st.button(UI_TEXT["coldstart_retry_button"], on_click=self._reset_coldstart)
+                    return False
+                time.sleep(COLD_START_RETRY_SECONDS)
+                st.rerun()
+            else:
+                self.session["api_ready"] = True
+                status.update(label=UI_TEXT["coldstart_ready"], state="complete")
+        return True
+
+    def _reset_coldstart(self) -> None:
+        self.session["coldstart_attempts"] = 0
 
     def display_sidebar(self) -> None:
         with st.sidebar:

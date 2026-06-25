@@ -2,7 +2,7 @@
 name = "claim-approval-agent"
 version = "0.1.0"
 description = "GenAI-powered claim approval prediction + multi-persona explanation service"
-requires-python = ">=3.11"
+requires-python = ">=3.11,<4.0"
 dependencies = [
     "fastapi>=0.110",
     "uvicorn[standard]>=0.29",

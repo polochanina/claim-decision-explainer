@@ -599,11 +599,5 @@
     "numeric_nan": "left_as_is"
   },
   "target": "target",
-  "positive_class_meaning": "declined",
-  "mlflow": {
-    "tracking_uri": "sqlite:///C:/Users/Eugenia/PycharmProjects/bolttech_homework/mlflow.db",
-    "run_id": "53f649b29b1d431ba256feabe1b6c967",
-    "registered_model_name": "claim-approval-catboost",
-    "model_version": 4
-  }
+  "positive_class_meaning": "declined"
 }

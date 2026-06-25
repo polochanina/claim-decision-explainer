@@ -11,8 +11,7 @@ DATASET_SOURCES = {
     "generated": SYNTHETIC_DATASET_PATH,
 }
 
-API_BASE_URL = "http://127.0.0.1:8000"
-EXPLAIN_ENDPOINT = f"{API_BASE_URL}/explain-claim"
+API_BASE_URL = "https://claim-decision-explainer.onrender.com"
 
 APP_NAME = "Claim Approval Explainer"
 APP_ICON = "🛡️"
@@ -58,4 +57,8 @@ UI_TEXT = {
     "error_title": "Something went wrong",
     "decision_approved": "✅ Approved",
     "decision_declined": "❌ Declined",
+    "coldstart_waiting": "⏳ Waking up the API (cold start, attempt {attempts})... this can take up to a minute",
+    "coldstart_ready": "✅ API is available",
+    "coldstart_failed": "❌ Could not reach the API after multiple attempts",
+    "coldstart_retry_button": "Retry connecting to API",
 }
