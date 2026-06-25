@@ -13,10 +13,7 @@ from app.config import (
     VOYAGE_MODEL,
     VOYAGE_OUTPUT_DIM,
 )
-from app.graph.nodes.assemble import AssembleNode
-from app.graph.nodes.attribute import AttributeNode
-from app.graph.nodes.explain import ExplainNode
-from app.graph.nodes.predict import PredictNode
+from app.graph.nodes import AssembleNode, AttributeNode, ExplainNode, PredictNode
 from app.graph.state import ClaimState
 from app.model.embedder import VoyageEmbedder
 from app.model.predictor import ClaimPredictor

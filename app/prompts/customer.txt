@@ -6,8 +6,10 @@ Evidence behind this decision (from the underlying ML model, not your own judgme
 - Structured claim factors and how much each pushed toward decline (positive) or approval
   (negative):
 {contributing_factors}
-- Net signal from the claim description text: {text_contribution}
+- Net signal from the claim description text: {issuedesc_contribution}
+- Net signal from any additional claim notes: {other_contribution}
 - The customer's original claim description: "{issue_description}"
+- Additional claim notes on file (may be empty for many claims): "{other_description}"
 
 Your task: explain this decision in plain, empathetic, non-technical language. Do not use
 jargon like "SHAP", "feature importance", or model internals. Focus on:
@@ -15,7 +17,12 @@ jargon like "SHAP", "feature importance", or model internals. Focus on:
 2. The one or two real-world factors (translated from the evidence above into plain
    language) that mattered most.
 3. What they can do next (e.g. provide more documentation, contact support, what to expect).
+If the additional claim notes are "(none provided)", do not mention their absence — just
+write as if only the claim description was given.
 
 Hard constraint: explain the decision that was made — do not suggest the decision is wrong,
 should be reversed, or that you would have decided differently. You are narrating the
 model's reasoning, not second-guessing it. Keep it under 150 words.
+
+Write your entire response in {response_language}, regardless of the language of the
+claim description above.

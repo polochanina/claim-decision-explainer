@@ -16,26 +16,28 @@ POST /explain-claim
 It's a LangGraph `StateGraph` (`app/graph/build.py`) over one shared `ClaimState` TypedDict
 (`app/graph/state.py`). Each node is a small class, built once at startup with its
 dependencies — the CatBoost predictor, the Voyage embedder, the Anthropic client — injected
-rather than fetched inside the node. See `app/graph/nodes/`.
+rather than fetched inside the node. See `app/graph/nodes.py`.
 
-**predict** embeds `issueDesc` live via Voyage (`voyage-4`, 256-dim, Matryoshka-truncated —
-no need for the full width on a dataset this small), builds the feature row in the exact
-column order from `artifacts/feature_spec.json`, and runs the pre-trained CatBoost model
-(`artifacts/catboost_model.cbm`). Writes `decline_probability` and `decision` to state.
+**predict** embeds `issueDesc` and `other` live via Voyage (`voyage-4`, 256-dim each,
+Matryoshka-truncated — no need for the full width on a dataset this small), builds the
+feature row in the exact column order from `artifacts/feature_spec.json`, and runs the
+pre-trained CatBoost model (`artifacts/catboost_model.cbm`). Writes `decline_probability`
+and `decision` to state.
 
 **attribute** runs CatBoost's own `get_feature_importance(type="ShapValues")` on that same
 row and splits the result into per-feature SHAP values (e.g. `touchScreen: -0.071`) plus one
-summed `text_contribution` number across the 256 embedding dimensions. This is the evidence
-the LLM gets — explanations are grounded in it, not invented.
+summed contribution per embedded text field — `text_contributions["issueDesc"]` and
+`text_contributions["other"]`, each across its own 256 embedding dimensions. This is the
+evidence the LLM gets — explanations are grounded in it, not invented.
 
 **explain (fan-out)** runs `explain_customer` and `explain_adjuster` in parallel, both
-reading the same upstream state (`decision`, `tabular_shap`, `text_contribution`, the raw
-`issueDesc`) and writing into a shared `persona_explanations` dict through a merge reducer
+reading the same upstream state (`decision`, `tabular_shap`, `text_contributions`, the raw
+`issueDesc` and `other`) and writing into a shared `persona_explanations` dict through a merge reducer
 (`Annotated[dict, merge_dicts]` on `ClaimState`) so neither branch clobbers the other. This
 is the one place the graph actually behaves like a graph instead of a linear script.
 
 **assemble** collates `decision`, `approval_probability` (`1 - decline_probability`), the
-sorted contributing factors, `text_contribution`, and both persona explanations into the
+sorted contributing factors, `text_contributions`, and both persona explanations into the
 response, validated by the `ExplanationResponse` Pydantic schema.
 
 ### Train/serve contract
@@ -82,6 +84,15 @@ I reused the same tuned hyperparameters and CV iteration count for the combined 
 than re-tuning, so the AUC delta isolates what the text itself contributes instead of
 conflating it with "found a better model."
 
+The shipped model (`artifacts/catboost_model.cbm`, 532 features) goes one step further and
+embeds `other` — the claim's secondary free-text notes field, often empty — the same way as
+`issueDesc`, on the theory that any free-text signal not already captured by `issueDesc`
+is worth letting the model see rather than discarding. I haven't re-measured held-out
+ROC-AUC/F1 for this issueDesc+other combination specifically (the notebook's ablation cell
+only compares tabular-only against tabular+issueDesc); treat the 0.754/0.457 numbers above
+as the issueDesc-only baseline the `other` embedding builds on top of, not as the current
+model's number.
+
 ## 3. GenAI: prompt engineering strategy
 
 Two persona prompts (`app/prompts/customer.txt`, `app/prompts/adjuster.txt`), same template
@@ -90,9 +101,10 @@ inputs — decision, top SHAP factors, raw `issueDesc` — different register an
 - **Customer**: plain language, no model jargon. What happened, the one or two factors that
   actually mattered, what to do next. Capped around 150 words.
 - **Adjuster**: technical, references the SHAP factors and their direction by name, and is
-  explicitly told to compare the structured-data signal against the text signal — any
-  disagreement gets surfaced as a named **review flag**, not quietly resolved one way or
-  the other.
+  explicitly told to compare the structured-data signal against each text signal
+  (`issueDesc` and `other` are scored and surfaced separately) — any disagreement, including
+  the two text sources disagreeing with each other, gets surfaced as a named **review flag**,
+  not quietly resolved one way or the other.
 
 The constraint that matters most in both prompts: explain the decision, never second-guess
 it. If the free text reads as more or less deniable than the structured evidence alone
@@ -102,9 +114,9 @@ model's SHAP evidence, not a second decision-maker. The realistic hallucination 
 system like this isn't made-up facts, it's the LLM quietly overriding the model's call, and
 this constraint is the direct guard against that.
 
-Claude reads `issueDesc` as-is — Swedish in the sample data, mixed languages elsewhere —
-rather than through a translation step first, since the AUC numbers above already show
-that's where the signal is.
+Claude reads both `issueDesc` and `other` as-is — Swedish in the sample data, mixed
+languages elsewhere — rather than through a translation step first, since the AUC numbers
+above already show free text is where the signal is.
 
 ### Targeted synthetic claim scenarios (implemented)
 

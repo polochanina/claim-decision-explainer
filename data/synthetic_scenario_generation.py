@@ -1,20 +1,17 @@
 #!/usr/bin/env python
 # coding: utf-8
 
-# # Targeted synthetic claim scenario generation
-# 
-# Two complementary generation modes, both grounded on real examples and scored with the
-# real `ClaimPredictor` (see `../docs/DESIGN.md` section 3):
-# 
-# 1. **Underrepresented-segment coverage** -- claims for low-support, high-decline segments
-#    (`WEARABLES`, `LAPTOP`, `TABLET`, `Theft`, `Liquid Damage`, `country=FI`), labeled
-#    `Declined` by the prompt to expand denial-pattern coverage.
-# 2. **Borderline / boundary-challenging** -- claims where the label is left for the model
-#    to decide; only candidates whose predicted decline probability lands near the decision
-#    boundary are kept, so the set actually challenges the model instead of asserting an
-#    answer upfront.
-# 
-# Offline tooling only -- output is saved separately and never feeds the app or retraining.
+# # Synthetic claim scenario generation
+#
+# Two modes for generating fake claims with Claude, offline only -- outputs are saved to
+# `data/` and never used by the app or for retraining.
+#
+# 1. **Segment coverage** -- claims for rare, high-decline segments (`WEARABLES`, `LAPTOP`,
+#    `TABLET`, `Theft`, `Liquid Damage`, `country=FI`), always labeled `Declined`, to pad out
+#    denial examples in segments the real data barely covers.
+# 2. **Borderline** -- claims with no asserted label; only ones the real model scores near
+#    50/50 decline probability are kept, so the set actually tests the model instead of
+#    telling it the answer.
 
 # In[ ]:
 
@@ -41,7 +38,6 @@ from app.model.predictor import ClaimPredictor
 DATA_PATH = "../data/claim_use_case_dataset.xlsx"
 df = pd.read_excel(DATA_PATH)
 
-# (column, value): targeted underrepresented / high-decline segments, see ../docs/DESIGN.md
 TARGET_SEGMENTS = [
     ("deviceType", "WEARABLES"),
     ("deviceType", "LAPTOP"),
@@ -112,12 +108,11 @@ OUTPUT_PATH
 
 
 # ## Sanity check
-# 
-# Run every synthetic row from the segment-coverage set above through the real
-# `ClaimPredictor`. This set's `status` was asserted by the prompt (always `"Declined"`),
-# not derived from the model, so disagreement below doesn't mean a row is invalid -- it
-# means the model itself wouldn't have declined that particular scenario. Worth knowing
-# before treating this set as eval ground truth; not a correctness guarantee on its own.
+#
+# Score the segment-coverage rows with the real `ClaimPredictor`. Their `Declined` label
+# was asserted by the prompt, not predicted -- so a mismatch below doesn't mean a row is
+# bad, just that the model wouldn't have declined that scenario on its own. Don't treat
+# this set as ground truth.
 
 # In[ ]:
 
@@ -139,15 +134,13 @@ for claim in rows:
 print(f"\n{agrees}/{len(rows)} synthetic rows agree with the asserted Declined label")
 
 
-# ## Borderline / boundary-challenging scenario generation
-# 
-# The set above always asserts `status = "Declined"`, so every row is an easy case by
-# construction -- none of them challenge the model. This section does the opposite: the
-# prompt leaves `status` undetermined and is told to write claims where the structured
-# fields and the `issueDesc` narrative pull in different directions. Each candidate is then
-# scored with the same real `ClaimPredictor` used at serving time, and only candidates whose
-# predicted decline probability lands near the decision boundary are kept -- the model's own
-# prediction is attached to the row instead of an asserted label.
+# ## Borderline scenario generation
+#
+# The set above is all easy cases -- every row is written to a known answer. Here the
+# label is left blank, and the prompt asks for tension between the structured fields and
+# the `issueDesc` narrative instead. Each candidate is scored with the real
+# `ClaimPredictor`, and only the ones landing near the decision boundary are kept, with the
+# model's own prediction attached.
 
 # In[ ]:
 

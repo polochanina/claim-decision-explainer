@@ -5,17 +5,23 @@ Evidence behind this decision:
 - Structured (tabular) SHAP contributions, sorted by magnitude (positive = pushes toward
   decline, negative = pushes toward approval):
 {contributing_factors}
-- Net SHAP contribution from the claim-description text embedding: {text_contribution}
-- Raw claim description (multilingual, read it natively): "{issue_description}"
+- Net SHAP contribution from the issueDesc text embedding: {issuedesc_contribution}
+- Net SHAP contribution from the other-notes text embedding: {other_contribution}
+- Raw claim description, "issueDesc" (multilingual, read it natively): "{issue_description}"
+- Raw claim notes, "other" (multilingual, often absent): "{other_description}"
 
 Your task: write a technical, audit-ready explanation for the adjuster. Reference the
 specific contributing factors above by name and direction. Explicitly discuss the
-relationship between the structured-factor signal and the text signal — if they agree,
-say so briefly; if they're in tension (e.g. the description reads as more/less severe or
-more/less deniable than the structured factors alone would suggest), call that out clearly
-as a **review flag** the adjuster should look into.
+relationship between the structured-factor signal and each text signal — if they agree,
+say so briefly; if any of them are in tension (e.g. a description reads as more/less
+severe or more/less deniable than the structured factors alone would suggest, or the two
+text sources disagree with each other), call that out clearly as a **review flag** the
+adjuster should look into.
 
 Hard constraint: explain and ground the model's decision in the evidence above — do not
 recommend overturning it. A tension between text and structured signals is a flag for
 human review, not a basis for you to propose a different outcome. Keep it under 180 words,
 technical register.
+
+Write your entire response in {response_language}, regardless of the language of the raw
+claim text above.

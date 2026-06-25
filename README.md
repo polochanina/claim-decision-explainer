@@ -69,15 +69,15 @@ and `VOYAGE_API_KEY` must be set in the environment for it to pass.
 
 `POST /explain-claim` runs a 4-node LangGraph pipeline:
 
-1. **predict** — embeds the claim's free-text `issueDesc` live via Voyage (`voyage-4`,
-   256-dim), concatenates with the tabular claim features in the exact order
-   `feature_spec.json` specifies, and runs the pickled CatBoost model.
+1. **predict** — embeds the claim's two free-text fields, `issueDesc` and `other`, live via
+   Voyage (`voyage-4`, 256-dim each), concatenates both with the tabular claim features in
+   the exact order `feature_spec.json` specifies, and runs the pickled CatBoost model.
 2. **attribute** — computes SHAP values for the same row (CatBoost's native
    `get_feature_importance(type="ShapValues")`), split into per-feature tabular factors
-   and one summed text-contribution magnitude.
+   and one summed text-contribution magnitude per embedded field (`issueDesc`, `other`).
 3. **explain** — two parallel branches call Claude with persona-specific
    prompts (`app/prompts/customer.txt`, `app/prompts/adjuster.txt`), each grounded in the
-   decision, the SHAP factors, and the raw `issueDesc`. Both prompts are constrained to
+   decision, the SHAP factors, and both raw text fields. Both prompts are constrained to
    *explain* the model's decision, never to override it.
 4. **assemble** — collates the prediction and both persona explanations into the response.
 
@@ -95,11 +95,14 @@ Langfuse is unreachable or unconfigured.
 ## Explicitly out of scope (MVP scope guard)
 
 - Auth, rate-limiting, streaming responses.
-- Caching embeddings at serve time (every request embeds `issueDesc` live — correct for
-  novel claims).
+- Caching embeddings at serve time (every request embeds `issueDesc` and `other` live —
+  correct for novel claims).
 - Synthetic claim scenario generation (an offline notebook concern, not part of this API).
 - Automated LLM-eval tooling (e.g. DeepEval/Ragas-style faithfulness/hallucination/fairness
   scoring) — the brief scopes evaluation & monitoring as a design plan (see
   [`docs/DESIGN.md`](docs/DESIGN.md) §6), not a built pipeline; this submission relies on
   Langfuse tracing plus the documented periodic LLM-as-judge/human-review plan instead of
   an automated eval suite.
+- Optimal decision-threshold selection — the model's default 0.5 cutoff on
+  `predict_proba` is used as-is; tuning the threshold against business cost of
+  false positives/negatives is a production calibration concern, not part of this MVP.

@@ -1,4 +1,8 @@
+from typing import Literal
+
 from pydantic import BaseModel, Field
+
+from app.config import DEFAULT_LANGUAGE
 
 
 class ClaimRequest(BaseModel):
@@ -23,6 +27,8 @@ class ClaimRequest(BaseModel):
     connection: float | None = None
     charging: float | None = None
     issueDesc: str | None = None
+    other: str | None = None
+    language: Literal["EN", "NL", "SV", "FI"] = DEFAULT_LANGUAGE
 
 
 class ContributingFactor(BaseModel):
@@ -39,5 +45,5 @@ class ExplanationResponse(BaseModel):
     decision: str = Field(..., description="'approved' or 'declined'")
     approval_probability: float
     contributing_factors: list[ContributingFactor]
-    text_contribution: float
+    text_contributions: dict[str, float]
     explanations: list[PersonaExplanation]

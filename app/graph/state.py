@@ -11,6 +11,6 @@ class ClaimState(TypedDict, total=False):
     decline_probability: float
     decision: str
     tabular_shap: dict[str, float]
-    text_contribution: float
+    text_contributions: dict[str, float]
     persona_explanations: Annotated[dict[str, str], merge_dicts]
     response: dict[str, Any]

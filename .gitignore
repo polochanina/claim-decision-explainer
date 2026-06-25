@@ -6,6 +6,10 @@ __pycache__/
 *.egg-info/
 catboost_info/
 .deepeval/
+.ipynb_checkpoints/
+
+# regenerable local embedding cache (re-derived from issueDesc via the Voyage API)
+issuedesc_emb_cache.json
 
 # mlflow sqlite WAL temp files (mlflow.db itself IS committed)
 mlflow.db-journal

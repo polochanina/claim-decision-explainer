@@ -3,7 +3,7 @@ import traceback
 import streamlit as st
 
 from streamlit_app.api_client import ExplainClient
-from streamlit_app.config import PERSONA_KEYS, PERSONA_LABELS, UI_TEXT
+from streamlit_app.config import LANGUAGE_KEYS, LANGUAGE_LABELS, PERSONA_KEYS, PERSONA_LABELS, UI_TEXT
 from streamlit_app.dataset import ClaimSampler
 
 
@@ -49,6 +49,12 @@ class AppUI:
                 format_func=lambda key: PERSONA_LABELS.get(key, key),
             )
 
+            self.session["language"] = st.selectbox(
+                UI_TEXT["language_label"],
+                LANGUAGE_KEYS,
+                format_func=lambda key: LANGUAGE_LABELS.get(key, key),
+            )
+
             if st.button(UI_TEXT["sample_button"]):
                 self._handle_sample()
 
@@ -76,8 +82,9 @@ class AppUI:
             st.warning(UI_TEXT["no_claims_for_country_warning"])
 
     def _handle_explain(self, claim: dict) -> None:
+        request = {**claim, "language": self.session["language"]}
         with st.spinner(UI_TEXT["spinner_explaining"]):
-            self.session["result"] = self._client.explain(claim)
+            self.session["result"] = self._client.explain(request)
 
     def _display_result(self) -> None:
         result = self.session.get("result")

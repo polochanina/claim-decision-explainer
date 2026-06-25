@@ -20,7 +20,7 @@ class ClaimPredictor:
         self._tabular_columns = spec["tabular_columns"]
         self._cat_features = spec["cat_features"]
         self._cat_feature_set = set(self._cat_features)
-        self._text_column = spec["preprocessing"]["text_column"]
+        self._embeddings = spec["embeddings"]
         self._mlflow_lineage = spec.get("mlflow", {})
 
         if len(self._feature_order) != len(self._model.feature_names_):
@@ -39,10 +39,14 @@ class ClaimPredictor:
             else:
                 row[col] = value
 
-        text = (claim.get(self._text_column) or "").strip() or " "
-        embedding = self._embedder.embed([text])[0]
-        for i, value in enumerate(embedding):
-            row[f"emb_{self._text_column}_{i}"] = float(value)
+        texts = [
+            (claim.get(entry["source_column"]) or "").strip() or " "
+            for entry in self._embeddings
+        ]
+        embeddings = self._embedder.embed(texts)
+        for entry, embedding in zip(self._embeddings, embeddings):
+            for i, value in enumerate(embedding):
+                row[f"{entry['column_prefix']}_{i}"] = float(value)
 
         return pd.DataFrame([row], columns=self._feature_order)
 
@@ -51,19 +55,23 @@ class ClaimPredictor:
         decision = "declined" if decline_probability >= DECISION_THRESHOLD else "approved"
         return decline_probability, decision
 
-    def shap_values(self, row: pd.DataFrame) -> tuple[dict[str, float], float]:
+    def shap_values(self, row: pd.DataFrame) -> tuple[dict[str, float], dict[str, float]]:
         pool = Pool(row, cat_features=self._cat_features)
         shap_row = self._model.get_feature_importance(pool, type="ShapValues")[0, :-1]
 
         tabular_shap = {}
-        text_contribution = 0.0
+        text_contributions = {entry["name"]: 0.0 for entry in self._embeddings}
         for column, contribution in zip(row.columns, shap_row):
-            if column.startswith(f"emb_{self._text_column}_"):
-                text_contribution += float(contribution)
+            matched_entry = next(
+                (entry for entry in self._embeddings if column.startswith(f"{entry['column_prefix']}_")),
+                None,
+            )
+            if matched_entry is not None:
+                text_contributions[matched_entry["name"]] += float(contribution)
             else:
                 tabular_shap[column] = float(contribution)
 
-        return tabular_shap, text_contribution
+        return tabular_shap, text_contributions
 
     @property
     def model_lineage(self) -> dict:

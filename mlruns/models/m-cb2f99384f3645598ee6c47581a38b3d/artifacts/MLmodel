@@ -1,0 +1,22 @@
+artifact_path: file:///C:/Users/Eugenia/PycharmProjects/bolttech_homework/mlruns/models/m-cb2f99384f3645598ee6c47581a38b3d/artifacts
+flavors:
+  catboost:
+    catboost_version: 1.2.10
+    code: null
+    data: model.cb
+    model_type: CatBoostClassifier
+    save_format: cbm
+  python_function:
+    data: model.cb
+    env:
+      conda: conda.yaml
+      virtualenv: python_env.yaml
+    loader_module: mlflow.catboost
+    python_version: 3.11.7
+mlflow_version: 3.14.0
+model_id: m-cb2f99384f3645598ee6c47581a38b3d
+model_size_bytes: 59816
+model_uuid: m-cb2f99384f3645598ee6c47581a38b3d
+prompts: null
+run_id: 83cefe2bb0014264902d75ddb4f013dd
+utc_time_created: '2026-06-25 08:21:52.695377'

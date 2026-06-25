@@ -19,6 +19,14 @@ PERSONAS = {
     "adjuster": PROMPTS_DIR / "adjuster.txt",
 }
 
+LANGUAGES = {
+    "EN": "English",
+    "NL": "Dutch",
+    "SV": "Swedish",
+    "FI": "Finnish",
+}
+DEFAULT_LANGUAGE = "EN"
+
 DECISION_THRESHOLD = 0.5
 
 EXPLAIN_CLAIM_TRACE_NAME = "explain-claim"

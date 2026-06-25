@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from app.config import PERSONAS
+from app.config import LANGUAGES, PERSONAS
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATASET_PATH = PROJECT_ROOT / "data" / "claim_use_case_dataset.xlsx"
@@ -30,6 +30,9 @@ PERSONA_LABELS = {
 }
 PERSONA_KEYS = list(PERSONAS.keys())
 
+LANGUAGE_LABELS = LANGUAGES
+LANGUAGE_KEYS = list(LANGUAGES.keys())
+
 UI_TEXT = {
     "title": "Claim Approval Explainer",
     "caption": "Sample a raw claim and see why the model approved or declined it.",
@@ -40,6 +43,7 @@ UI_TEXT = {
     "source_real": "Real",
     "source_generated": "Generated",
     "persona_label": "Explain as",
+    "language_label": "Response language",
     "sample_button": "🎲 Draw a random claim",
     "claim_header": "Raw claim",
     "explain_button": "Explain this claim",

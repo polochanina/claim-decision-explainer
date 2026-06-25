@@ -10,8 +10,15 @@ explanations for each decision.
 It exports three artifacts this app loads at startup and never regenerates:
 
 - `artifacts/catboost_model.cbm` — trained CatBoost model (tabular + text-embedding features).
-- `artifacts/feature_spec.json` — the train/serve contract (see below).
+- `artifacts/feature_spec.json` — the train/serve contract (see below). Also carries
+  `["mlflow"]` lineage metadata (run id, registered model name/version) that
+  `ClaimPredictor.model_lineage` reads and `GET /health` surfaces — the app never talks to
+  MLflow at serve time, it only reads fields already baked into this file.
 - `artifacts/sample_claim.json` — one real raw claim, used as the canonical example request.
+
+The notebook also logs each training run to MLflow (`sqlite:///mlflow.db` at the repo root,
+artifacts in `mlruns/` — both committed). Don't delete or regenerate these as app work;
+they're training-side provenance, not app state.
 
 Do not retrain or re-export from the notebook as part of app work. If the notebook changes
 and re-exports, the app's `predictor.py` must be re-validated against the new
@@ -33,11 +40,13 @@ at inference unless you pass a DataFrame with matching columns — always pass c
   country`. Missing values become the literal string `"missing"`, then all values are
   cast to `str`. The remaining tabular columns are numeric/boolean form-checkbox flags —
   leave missing values as `NaN`; CatBoost handles numeric NaN natively. Do not fillna them.
-- **`other`** is dropped entirely — never a model input, in training or serving.
-- **`issueDesc`** is never a raw tabular feature. It is embedded live via Voyage
-  (`model="voyage-4"`, `input_type="document"`, `output_dimension=256`) into columns
-  `emb_issueDesc_0..255`, appended after the tabular columns. An empty/missing `issueDesc`
-  is embedded as a single space `" "` (not skipped, not zero-filled) — matches training.
+- **`issueDesc` and `other`** are never raw tabular features. Both are embedded live via
+  Voyage (`model="voyage-4"`, `input_type="document"`, `output_dimension=256`) into their
+  own column blocks — `emb_issueDesc_0..255` and `emb_other_0..255` — appended after the
+  tabular columns, in the order listed in `feature_spec.json["embeddings"]`. An
+  empty/missing value in either column is embedded as a single space `" "` (not skipped,
+  not zero-filled) — matches training. `other` was dropped entirely in an earlier version
+  of this contract; it is now a real second model input, not a no-op field.
 - **Target polarity**: `target == 1` means **declined**. `predict_proba(...)[:, 1]` is
   P(decline). Any "approval probability" surfaced in the API or to an LLM prompt is
   `1 - P(decline)` — make this conversion once, in `predictor.py`, and never re-derive it
@@ -48,11 +57,19 @@ If you ever need to change this contract, it must originate from a notebook re-e
 
 ## Secrets
 
-`ANTHROPIC_API_KEY` and `VOYAGE_API_KEY` are read from `.env` via `app/secrets_utils.py`
+`ANTHROPIC_API_KEY`, `VOYAGE_API_KEY`, and the optional `LANGFUSE_PUBLIC_KEY` /
+`LANGFUSE_SECRET_KEY` / `LANGFUSE_HOST` are read from `.env` via `app/secrets_utils.py`
 only. No other file calls `os.getenv`. Never hardcode a key in source, a notebook cell, or
-a test fixture — `notebooks/EDA + modeling.ipynb` cell 39 currently contains a hardcoded Voyage key
-left over from notebook experimentation; treat that as a leaked credential to be rotated,
-not a pattern to copy.
+a test fixture.
+
+## Observability
+
+`app/observability.py` exposes `get_langfuse()` (an `@lru_cache` factory, like
+`app/graph/build.py`'s), returning `None` when the Langfuse keys aren't set — every call
+site (`VoyageEmbedder.embed`, `ExplainNode._call_llm`, the `/explain-claim` route) must
+handle that `None` case and skip tracing rather than fail the request. When Langfuse is
+configured, each `/explain-claim` request opens one trace with child generation spans for
+the Voyage embedding call and each persona's Claude call.
 
 ## Code conventions
 
@@ -69,9 +86,9 @@ This project follows the two skill files already in `skill/fastapi.md` and
 - External clients (`VoyageEmbedder`, the Anthropic client, `ClaimPredictor`) are wrapped in
   classes with private protocol methods and a small public domain-method surface
   (`embed`, `predict`, `explain`).
-- LangGraph nodes are thin classes, one per file under `app/graph/nodes/`, each constructed
-  once via an `@lru_cache` factory in `app/graph/build.py` and given its dependencies
-  (predictor, embedder, Claude client) at construction — not fetched inside `__call__`.
+- LangGraph nodes are thin classes in `app/graph/nodes.py`, each constructed once via an
+  `@lru_cache` factory in `app/graph/build.py` and given its dependencies (predictor,
+  embedder, Claude client) at construction — not fetched inside `__call__`.
 - Type hints on every signature. No `from __future__ import annotations` (Python 3.11+,
   native generics work).
 - No banner comments (`# ---- Section ----`). Group by blank lines and names.
@@ -91,10 +108,11 @@ faithful to the SHAP-grounded evidence rather than an independent LLM judgment c
 
 - Auth, rate-limiting, streaming responses — note as production concerns in `docs/DESIGN.md`,
   don't implement.
-- Embedding caching at serve time — every request embeds `issueDesc` live; that's correct
-  for novel claims, not a gap to fix.
-- Synthetic claim scenario generation — an offline notebook concern, not part of
-  `/explain-claim`.
+- Embedding caching at serve time — every request embeds `issueDesc` and `other` live;
+  that's correct for novel claims, not a gap to fix.
+- Synthetic claim scenario generation — implemented as a standalone offline script
+  (`data/synthetic_scenario_generation.py`, segment-coverage + borderline modes), not part
+  of `/explain-claim` and not wired into the app or retraining.
 
 ## Verification
 
