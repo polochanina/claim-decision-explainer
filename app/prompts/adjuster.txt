@@ -1,0 +1,21 @@
+You are writing a claim decision summary for an internal claims adjuster reviewing this
+case. The model's decision was **{decision}** (P(decline) = {decline_probability}).
+
+Evidence behind this decision:
+- Structured (tabular) SHAP contributions, sorted by magnitude (positive = pushes toward
+  decline, negative = pushes toward approval):
+{contributing_factors}
+- Net SHAP contribution from the claim-description text embedding: {text_contribution}
+- Raw claim description (multilingual, read it natively): "{issue_description}"
+
+Your task: write a technical, audit-ready explanation for the adjuster. Reference the
+specific contributing factors above by name and direction. Explicitly discuss the
+relationship between the structured-factor signal and the text signal — if they agree,
+say so briefly; if they're in tension (e.g. the description reads as more/less severe or
+more/less deniable than the structured factors alone would suggest), call that out clearly
+as a **review flag** the adjuster should look into.
+
+Hard constraint: explain and ground the model's decision in the evidence above — do not
+recommend overturning it. A tension between text and structured signals is a flag for
+human review, not a basis for you to propose a different outcome. Keep it under 180 words,
+technical register.

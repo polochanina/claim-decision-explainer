@@ -1,0 +1,16 @@
+__pycache__/
+*.py[cod]
+.venv
+.env
+.pytest_cache/
+*.egg-info/
+catboost_info/
+.deepeval/
+
+# mlflow sqlite WAL temp files (mlflow.db itself IS committed)
+mlflow.db-journal
+mlflow.db-wal
+mlflow.db-shm
+
+# Claude Code harness runtime state, not project source
+.claude/scheduled_tasks.lock

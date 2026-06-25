@@ -1,0 +1,14 @@
+.git
+.venv
+__pycache__
+*.pyc
+.env
+.claude
+.vscode
+tests
+streamlit_app
+catboost_info
+README.md
+DESIGN.md
+CLAUDE.md
+skill
