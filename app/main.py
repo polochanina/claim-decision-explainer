@@ -1,3 +1,6 @@
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 
 from app.config import EXPLAIN_CLAIM_TRACE_NAME
@@ -5,7 +8,19 @@ from app.graph.build import get_compiled_graph, get_predictor
 from app.observability import get_langfuse
 from app.schemas import ClaimRequest, ExplanationResponse
 
-app = FastAPI(title="Claim Approval Agent")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    yield
+    langfuse = get_langfuse()
+    if langfuse is not None:
+        try:
+            langfuse.shutdown()
+        except Exception:
+            pass
+
+
+app = FastAPI(title="Claim Approval Agent", lifespan=lifespan)
 
 
 @app.get("/health")
